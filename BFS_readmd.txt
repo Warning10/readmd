@@ -1,0 +1,102 @@
+#include<iostream> // Include necessary header for input/output operations
+#include<vector>   // Include header for vector data structure
+#include<omp.h>    // Include header for OpenMP parallelization
+#include<queue>    // Include header for queue data structure
+#include<bits/stdc++.h> // This header includes most of the standard headers
+
+using namespace std;
+
+queue<int> q; // Define a global queue for BFS traversal
+
+// Serial BFS function
+void bfs_serial(int start, int* arr, int n, int visit[]) {
+    for(int i = 0; i < n; i++) { // Iterate through all vertices
+        if(*(arr + (n * start) + i) == 1 && visit[i] == 0) { // Check if there is an edge from 'start' to 'i' and 'i' is not visited
+            cout << i << " "; // Print the vertex
+            q.push(i); // Push the vertex to the queue
+            visit[i] = 1; // Mark the vertex as visited
+        }
+    }
+
+    q.pop(); // Remove the front element from the queue
+
+    if(!q.empty()) bfs_serial(q.front(), (int*)arr, n, visit); // If queue is not empty, recursively call bfs_serial with the front element
+}
+
+// Parallel BFS function
+void bfs_parallel(int start, int* arr, int n, int visit[]) {
+    #pragma omp parallel for // Begin parallel region, distribute loop iterations among threads
+    for(int i = 0; i < n; i++) { // Iterate through all vertices
+        if((*(arr + (n * start) + i) == 1) && (visit[i] == 0)) { // Check if there is an edge from 'start' to 'i' and 'i' is not visited
+            #pragma omp critical // Begin critical section to ensure mutual exclusion
+            {
+                cout << i << " "; // Print the vertex
+                q.push(i); // Push the vertex to the queue
+                visit[i] = 1; // Mark the vertex as visited
+            }
+        }
+    }
+
+    #pragma omp single // Begin single construct to ensure that only one thread executes the following block
+    {
+        q.pop(); // Remove the front element from the queue
+    }
+
+    if(!q.empty()) bfs_parallel(q.front(), (int*)arr, n, visit); // If queue is not empty, recursively call bfs_parallel with the front element
+}
+
+int main() {
+    cout << "Enter the number of vertices: ";
+    int n;
+    cin >> n; // Input the number of vertices
+
+    int arr[n][n] = {0}; // Initialize adjacency matrix with zeros
+
+    cout << "Enter the number of edges: ";
+    int edges;
+    cin >> edges; // Input the number of edges
+
+    for(int j = 0; j < edges; j++) { // Iterate through all edges
+        int a, b;
+        cout << "Enter the two edges:" << endl;
+        cin >> a >> b; // Input two vertices representing an edge
+        arr[a][b] = 1; // Mark the edge between 'a' and 'b' as present
+        arr[b][a] = 1; // Mark the edge between 'b' and 'a' as present (assuming undirected graph)
+    }
+
+    int visit[n] = {0}; // Initialize visit array to mark visited vertices
+
+    cout << "Enter the start vertex: ";
+    int start;
+    cin >> start; // Input the start vertex for BFS traversal
+
+    // Serial execution
+    clock_t strt_serial = clock(); // Record start time for serial execution
+
+    visit[start] = 1; // Mark the start vertex as visited
+    cout << start << " "; // Print the start vertex
+    q.push(start); // Push the start vertex to the queue
+
+    bfs_serial(start, (int*)arr, n, visit); // Call serial BFS function
+
+    clock_t stop_serial = clock(); // Record stop time for serial execution
+
+    cout << "\nTime required (serial): " << (double)(stop_serial - strt_serial) << " ms" << endl; // Print serial execution time
+
+    // Parallel execution
+    clock_t strt_parallel = clock(); // Record start time for parallel execution
+
+    memset(visit, 0, sizeof(visit)); // Reset visit array for parallel execution
+
+    visit[start] = 1; // Mark the start vertex as visited
+    cout << start << " "; // Print the start vertex
+    q.push(start); // Push the start vertex to the queue
+
+    bfs_parallel(start, (int*)arr, n, visit); // Call parallel BFS function
+
+    clock_t stop_parallel = clock(); // Record stop time for parallel execution
+
+    cout << "\nTime required (parallel): " << (double)(stop_parallel - strt_parallel) << " ms" << endl; // Print parallel execution time
+
+    return 0; // Return 0 to indicate successful termination
+}

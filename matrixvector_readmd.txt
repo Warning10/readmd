@@ -1,0 +1,77 @@
+#include<iostream>   // Include necessary header for input/output operations
+#include<omp.h>      // Include header for OpenMP parallelization
+#include<cstdlib>    // Include for srand and rand
+#include<ctime>      // Include for time
+using namespace std;
+
+int main() {
+    cout << endl;
+    cout << "Enter the number of elements in the vector: ";
+    int nvec;
+    cin >> nvec;  // Input the number of elements in the vector
+
+    int vec[nvec] = {0};  // Declare an array to store the vector elements
+
+    // Seed the random number generator using current time
+    srand(time(NULL));
+
+    // Generate random numbers and fill the vector
+    for (int i = 0; i < nvec; i++) vec[i] = rand() % 10;
+    cout << endl;
+
+    cout << "Vector: ";
+    for (int i = 0; i < nvec; i++) cout << vec[i] << " "; // Print the vector
+    cout << endl << endl;
+
+    cout << "Enter the number of rows in the matrix: ";
+    int rows;
+    cin >> rows;  // Input the number of rows in the matrix
+
+    int mat[rows][nvec];  // Declare a matrix of size rows x nvec
+
+    // Generate random numbers and fill the matrix
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < nvec; j++) mat[i][j] = rand() % 10; // Generate random numbers between 0 and 9
+    }
+    cout << endl;
+
+    cout << "Matrix: " << endl;
+    // Print the matrix
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < nvec; j++) cout << mat[i][j] << " "; // Print the matrix element
+        cout << endl;
+    }
+    cout << endl;
+
+    cout << "Multiplication: " << endl;
+    int rvec[nvec]; // Declare an array to store the resultant vector
+
+    // Perform vector-matrix multiplication in parallel
+    clock_t start_parallel = clock(); // Record start time
+    #pragma omp parallel for
+    for (int i = 0; i < rows; i++) {
+        rvec[i] = 0; // Initialize the element of the resultant vector
+        int arr[nvec] = {0}; // Declare an array to store intermediate results
+
+        // Perform element-wise multiplication of matrix row and vector
+        #pragma omp parallel for
+        for (int j = 0; j < nvec; j++) arr[j] = mat[i][j] * vec[j];
+
+        int sum = 0; // Initialize sum to accumulate the results
+        // Calculate the sum of elements in arr using reduction
+        #pragma omp parallel for reduction(+: sum)
+        for (int k = 0; k < nvec; k++) sum += arr[k];
+
+        rvec[i] = sum; // Assign the sum to the resultant vector element
+    }
+    clock_t stop_parallel = clock(); // Record stop time
+
+    // Print the resultant vector
+    for (int i = 0; i < nvec; i++) cout << rvec[i] << " ";
+    cout << endl;
+
+    // Print the time required for parallel execution
+    cout << "Time required for parallel execution: " << (double)(stop_parallel - start_parallel) << " ms" << endl;
+
+    return 0; // Return 0 to indicate successful termination
+}

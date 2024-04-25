@@ -1,0 +1,79 @@
+#include <iostream> // Include necessary header for input/output operations
+#include <vector>   // Include header for vector data structure
+#include <omp.h>    // Include header for OpenMP parallelization
+#include <bits/stdc++.h> // This header includes most of the standard headers
+
+using namespace std;
+
+// Depth-First Search (DFS) function for serial execution
+void dfs_serial(int start, int* arr, int n, int visited[]) {
+    for(int i = 0; i < n; i++) { // Loop through all vertices
+        if((*(arr + (start * n) + i) == 1) && (!visited[i])) { // Check if there is an edge from 'start' to 'i' and 'i' is not visited
+            visited[i] = 1; // Mark vertex 'i' as visited
+            cout << i << " "; // Print the visited vertex
+            dfs_serial(i, (int*)arr, n, visited); // Recursively call dfs_serial for vertex 'i'
+        }
+    }
+}
+
+// Depth-First Search (DFS) function for parallel execution
+void dfs_parallel(int start, int* arr, int n, int visited[]) {
+    #pragma omp parallel for // Begin parallel region, distribute loop iterations among threads
+    for(int i = 0; i < n; i++) { // Loop through all vertices
+        if((*(arr + (start * n) + i) == 1) && (!visited[i])) { // Check if there is an edge from 'start' to 'i' and 'i' is not visited
+            #pragma omp critical // Begin critical section to ensure mutual exclusion
+            {
+                visited[i] = 1; // Mark vertex 'i' as visited
+                cout << i << " "; // Print the visited vertex
+            }
+            dfs_parallel(i, (int*)arr, n, visited); // Recursively call dfs_parallel for vertex 'i'
+        }
+    }
+}
+
+int main() {
+    cout << "Enter the number of vertices: ";
+    int n;
+    cin >> n; // Input the number of vertices
+
+    int arr[n][n] = {0}; // Initialize adjacency matrix with zeros
+
+    cout << "Enter the number of edges: ";
+    int edges;
+    cin >> edges; // Input the number of edges
+
+    for(int j = 0; j < edges; j++) { // Loop through all edges
+        int a, b;
+        cout << "Enter the two edges:" << endl;
+        cin >> a >> b; // Input two vertices representing an edge
+        arr[a][b] = 1; // Mark the edge between 'a' and 'b' as present
+        arr[b][a] = 1; // Mark the edge between 'b' and 'a' as present (assuming undirected graph)
+    }
+
+    int visited[n] = {0}; // Initialize visited array to mark visited vertices
+
+    cout << "Enter the start vertex: ";
+    int start;
+    cin >> start; // Input the start vertex for DFS traversal
+
+    // Serial execution
+    clock_t strt_serial = clock(); // Record start time for serial execution
+    cout << start << " "; // Print the start vertex
+    visited[start] = 1; // Mark the start vertex as visited
+    dfs_serial(start, (int *)arr, n, visited); // Call serial DFS function
+    clock_t stop_serial = clock(); // Record stop time for serial execution
+
+    cout << "\nTime required (serial): " << (double)(stop_serial - strt_serial) << " ms" << endl; // Print serial execution time
+
+    // Parallel execution
+    clock_t strt_parallel = clock(); // Record start time for parallel execution
+    memset(visited, 0, sizeof(visited)); // Reset visited array for parallel execution
+    cout << start << " "; // Print the start vertex
+    visited[start] = 1; // Mark the start vertex as visited
+    dfs_parallel(start, (int *)arr, n, visited); // Call parallel DFS function
+    clock_t stop_parallel = clock(); // Record stop time for parallel execution
+
+    cout << "\nTime required (parallel): " << (double)(stop_parallel - strt_parallel) << " ms" << endl; // Print parallel execution time
+
+    return 0; // Return 0 to indicate successful termination
+}

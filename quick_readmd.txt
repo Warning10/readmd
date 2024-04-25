@@ -1,0 +1,116 @@
+#include<iostream>              // Include necessary header for input/output operations
+#include<bits/stdc++.h>         // Include necessary header for various standard library functions
+#include<iomanip>               // Include necessary header for formatting output
+#include<omp.h>                 // Include header for OpenMP parallelization
+using namespace std;
+
+// Function to perform Quick Sort serially
+void quicksort_serial(int arr[], int st, int end) {
+    if (st < end) {
+        int pivot = arr[end];    // Select pivot element (in this case, the last element)
+        int i = st - 1;          // Initialize index of smaller element
+
+        // Partitioning process
+        for (int var = st; var < end; var++) {
+            if (arr[var] < pivot) {     // If current element is smaller than the pivot
+                i++;                    // Increment index of smaller element
+                // Swap arr[i] and arr[var]
+                int temp = arr[i];
+                arr[i] = arr[var];
+                arr[var] = temp;
+            }
+        }
+
+        // Swap arr[i+1] and arr[end] (pivot element)
+        int temp = arr[i + 1];
+        arr[i + 1] = arr[end];
+        arr[end] = temp;
+
+        i++;
+
+        // Recursively sort elements before partition and after partition
+        quicksort_serial(arr, st, i - 1);
+        quicksort_serial(arr, i + 1, end);
+    }
+}
+
+// Function to perform Quick Sort in parallel
+void quicksort_parallel(int arr[], int st, int end) {
+    if (st < end) {
+        int pivot = arr[end];    // Select pivot element (in this case, the last element)
+        int i = st - 1;          // Initialize index of smaller element
+
+        // Partitioning process
+        for (int var = st; var < end; var++) {
+            if (arr[var] < pivot) {     // If current element is smaller than the pivot
+                i++;                    // Increment index of smaller element
+                // Swap arr[i] and arr[var]
+                int temp = arr[i];
+                arr[i] = arr[var];
+                arr[var] = temp;
+            }
+        }
+
+        // Swap arr[i+1] and arr[end] (pivot element)
+        int temp = arr[i + 1];
+        arr[i + 1] = arr[end];
+        arr[end] = temp;
+
+        i++;
+
+        // Parallel sections for sorting elements before partition and after partition
+#pragma omp parallel sections
+        {
+#pragma omp section
+            quicksort_parallel(arr, st, i - 1);
+#pragma omp section
+            quicksort_parallel(arr, i + 1, end);
+        }
+    }
+}
+
+// Main function
+int main() {
+    int n;  // Declare variable to store the number of elements
+    cout << "Enter the number of elements: ";  // Prompt user to enter the number of elements
+    cin >> n;   // Input the number of elements
+    
+    int arr[n] = {0};   // Declare array of size n to store elements
+
+    srand(time(NULL));  // Seed the random number generator with current time
+
+    // Generate random numbers and fill the array
+    for(int i = 0; i < n; i++) {
+        arr[i] = rand() % 32;   // Generate random numbers between 0 and 31
+    }
+
+    cout << "Array: ";
+    for (int i = 0; i < n; i++) cout << arr[i] << " "; // Print the original array
+    cout << endl;
+
+    // Serial Execution
+    clock_t start_serial = clock(); // Record start time
+    quicksort_serial(arr, 0, n - 1);   // Call serial Quick Sort function
+    clock_t stop_serial = clock();  // Record stop time
+    cout << "Sorted Array (Serial): ";
+    for (int i = 0; i < n; i++) cout << arr[i] << " "; // Print the sorted array
+    cout << endl;
+    cout << "Time required for serial execution: " << (double)(stop_serial - start_serial) << " ms" << endl; // Print execution time
+    
+    // Reset array for parallel execution
+    srand(time(NULL));  // Seed the random number generator again with current time
+    for(int i = 0; i < n; i++) {
+        arr[i] = rand() % 32; // Generate random numbers between 0 and 31
+    }
+
+    // Parallel Execution
+    clock_t start_parallel = clock();   // Record start time
+    quicksort_parallel(arr, 0, n - 1);  // Call parallel Quick Sort function
+    clock_t stop_parallel = clock();    // Record stop time
+    cout << "Sorted Array (Parallel): ";
+    for (int i = 0; i < n; i++) cout << arr[i] << " "; // Print the sorted array
+    cout << endl;
+    cout << "Time required for parallel execution: " << (double)(stop_parallel - start_parallel) << " ms" << endl; // Print execution time
+
+    return 0;   // Return 0 to indicate successful termination
+}

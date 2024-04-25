@@ -1,0 +1,96 @@
+#include <omp.h>            // Include OpenMP header for parallelization
+#include <iostream>         // Include input/output stream header
+#include <time.h>           // Include time header for time-related functions
+using namespace std;
+
+// Function for performing bubble sort serially
+void serialBubbleSort(int array[], int n) {
+    for (int i = 0; i < n - 1; ++i) {              // Outer loop for passes
+        for (int j = 0; j < n - i - 1; ++j) {      // Inner loop for comparisons
+            if (array[j] > array[j + 1]) {         // If adjacent elements are in the wrong order
+                int temp = array[j];               // Swap them
+                array[j] = array[j + 1];
+                array[j + 1] = temp;
+            }
+        }
+    }
+}
+
+// Function for performing bubble sort in parallel
+void parallelBubbleSort(int array[], int n) {
+    int var = 0;    // Variable for switching between even and odd passes
+#pragma omp parallel   // Begin parallel region
+    {
+        for (int i = 0; i < n; i++) {   // Iterate through all elements
+#pragma omp for   // Distribute loop iterations among threads
+            for (int j = var; j < n - 1; j += 2) {   // Inner loop for comparisons, start from var
+                if (array[j] > array[j + 1]) {       // If adjacent elements are in the wrong order
+                    int temp = array[j];             // Swap them
+                    array[j] = array[j + 1];
+                    array[j + 1] = temp;
+                }
+            }
+
+#pragma omp single   // Begin single construct to ensure only one thread executes the following block
+            {
+                if (var == 0)       // If var is 0, set it to 1 for next pass
+                    var = 1;
+                else                // If var is 1, set it to 0 for next pass
+                    var = 0;
+            }
+        }
+    }
+}
+
+// Main function
+int main() {
+    int n;  // Declare variable to store the number of elements
+    cout << "Enter the number of elements : ";   // Prompt user to enter the number of elements
+    cin >> n;   // Input the number of elements
+    cout << endl;
+
+    int array[n] = {0}; // Declare array of size n to store elements
+
+    srand(time(NULL));  // Seed the random number generator with current time
+
+    // Initialize array with random numbers
+    for(int i=0; i < n; i++) {
+        array[i] = rand() % 32; // Generate random numbers between 0 and 31
+    }
+
+    cout << "Original Array: ";
+    for (int i = 0; i < n; i++) cout << array[i] << " "; // Print the original array
+    cout << endl;
+
+    clock_t start, stop;    // Declare variables to store start and stop time
+
+    // Serial Execution
+    start = clock();    // Record start time
+    serialBubbleSort(array, n); // Call serial bubble sort function
+    stop = clock();     // Record stop time
+
+    cout << "\nFinal Array (Serial): ";
+    for (int i = 0; i < n; i++) cout << array[i] << " "; // Print the sorted array
+    cout << endl;
+
+    cout << "\nTime required for Serial Execution: " << (double)(stop - start) << " ms" << endl; // Print execution time
+
+    // Reset array for parallel execution
+    srand(time(NULL));  // Seed the random number generator again with current time
+    for(int i=0; i < n; i++) {
+        array[i] = rand() % 32; // Generate random numbers between 0 and 31
+    }
+
+    // Parallel Execution
+    start = clock();    // Record start time
+    parallelBubbleSort(array, n);   // Call parallel bubble sort function
+    stop = clock();     // Record stop time
+
+    cout << "\nFinal Array (Parallel): ";
+    for (int i = 0; i < n; i++) cout << array[i] << " "; // Print the sorted array
+    cout << endl;
+
+    cout << "\nTime required for Parallel Execution: " << (double)(stop - start) << " ms" << endl; // Print execution time
+
+    return 0; // Return 0 to indicate successful termination
+}
